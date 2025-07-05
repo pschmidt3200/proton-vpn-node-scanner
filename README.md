@@ -1,8 +1,14 @@
-# 🛡️ Proton-Scanner: Ein Analyse-Werkzeug für ProtonVPN
+# 🛡️ Proton-Scanner: Ein KI-unterstütztes Analyse-Werkzeug
 
 Ein schnelles, modernes und interaktives Kommandozeilen-Werkzeug zur Analyse von ProtonVPN-Servern, geschrieben in Python mit `asyncio`.
 
-Dieses Projekt ist die Weiterentwicklung eines anfangs einfachen Bash-Skripts zu einer performanten Python-Anwendung. Es dient dazu, detaillierte Informationen über ProtonVPN-Nodes zu sammeln und die Zuordnung von IP-Adressen zu Server-Namen zu ermöglichen.
+Dieses Projekt wurde maßgeblich mit Unterstützung der **KI Gemini von Google** entwickelt und ist ein Beispiel für eine interaktive Zusammenarbeit zwischen Mensch und KI.
+
+## 🤖 Über das Projekt: Eine Mensch-KI-Kollaboration
+
+Dieses Werkzeug begann als einfaches Bash-Skript. In einer fortlaufenden Konversation mit Gemini wurde es schrittweise zu dieser performanten Python-Anwendung ausgebaut. Jeder Entwicklungsschritt – von der ersten Code-Zeile über die Umstellung auf Python, die Implementierung von asynchronen Abfragen bis hin zur automatischen Abhängigkeitsprüfung – entstand in diesem Dialog.
+
+Der Hinweis auf die Beteiligung der KI dient der Transparenz und soll zeigen, wie Mensch-Maschine-Kollaboration heute aussehen kann.
 
 ## ✨ Merkmale
 
