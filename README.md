@@ -22,7 +22,7 @@ Das Skript benötigt **Python 3.7+**.
 
 1.  **Klone das Repository:**
     ```sh
-    git clone [https://github.com/dein-username/proton-vpn-scanner.git](https://github.com/dein-username/proton-vpn-scanner.git)
+    git clone https://github.com/pschmidt3200/proton-vpn-scanner.git
     cd proton-vpn-scanner
     ```
 
