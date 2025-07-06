@@ -6,8 +6,8 @@ import subprocess
 import importlib.util
 import os
 
-# (Dieser Teil bleibt unverändert)
 def get_distro_specific_advice(packages: list) -> str:
+    """Gibt einen spezifischen Installationsbefehl basierend auf der erkannten Linux-Distribution."""
     if not os.path.exists('/etc/os-release'):
         return "Benutze den Paketmanager deiner Distribution."
     with open('/etc/os-release') as f:
@@ -95,7 +95,7 @@ console = Console()
 resolver = dns.asyncresolver.Resolver()
 resolver.timeout = 2
 resolver.lifetime = 2
-permissions_warning_shown = False # NEU: Globale Variable für die Warnung
+permissions_warning_shown = False
 
 async def get_ips(hostname: str) -> dict:
     results = {"a": [], "aaaa": []}
@@ -136,7 +136,7 @@ async def check_server(hostname: str, progress, task, perform_ping: bool) -> Opt
             ping_map = {p.address: p.avg_rtt for p in ping_results if p.is_alive}
         except exceptions.SocketPermissionError:
             if not permissions_warning_shown:
-                console.print("\n\n[bold yellow]⚠️ Warnung:[/bold yellow] Ping-Test erfordert Root-Rechte (oder `sudo setcap`). Latenzen werden übersprungen.")
+                console.print("\n\n[bold yellow]⚠️ Warnung:[/bold yellow] Ping-Test erfordert Root-Rechte. Latenzen werden übersprungen.")
                 permissions_warning_shown = True
     
     return {
@@ -145,10 +145,13 @@ async def check_server(hostname: str, progress, task, perform_ping: bool) -> Opt
         "ipv6": [{"ip": ip, "ptr": ptr_map.get(ip)} for ip in ips["aaaa"]]
     }
 
-def display_results(results: List[dict]):
+def display_results(results: List[dict], search_description: str):
+    """Zeigt die gefundenen Server in einer formatierten Tabelle an."""
+    # NEU: Verwendet die Suchbeschreibung in der "Nicht gefunden"-Nachricht.
     if not any(results):
-        console.print("[yellow]Keine Server im angegebenen Bereich gefunden.[/yellow]")
+        console.print(f"[yellow]Keine {search_description} im angegebenen Bereich gefunden.[/yellow]")
         return
+        
     table = Table(title="Analyse-Ergebnisse", show_header=True, header_style="bold magenta")
     table.add_column("Proton Node", style="cyan")
     table.add_column("IP-Adresse", style="dim")
@@ -170,33 +173,39 @@ async def analyze_servers(perform_ping: bool):
     """UI-Funktion für die normale Server-Analyse."""
     console.print("\n[bold]--- Server analysieren ---[/bold]")
     mode = Prompt.ask(
-        "Wähle den Server-Typ ([1] Klassisch [2] Modern [3] Secure Core [4] Manuell)", 
+        "Wähle den Server-Typ ([1] Klassisch (OpenVPN/IKEv2) [2] Modern (WireGuard) [3] Secure Core [4] Manuell)", 
         choices=["1", "2", "3", "4"], default="1", console=console)
     
-    prefix, domain = "", ""
+    prefix, domain, search_description = "", "", ""
     if mode == "1":
         cc = Prompt.ask("Länderkürzel (z.B. de, us-ca)")
         prefix, domain = f"{cc}-", "protonvpn.com"
+        search_description = "Klassische (OpenVPN/IKEv2) Server"
     elif mode == "2":
         cc = Prompt.ask("Länderkürzel (z.B. de, us)")
         prefix, domain = f"node-{cc}-", "protonvpn.net"
+        search_description = "Moderne (WireGuard) Server"
     elif mode == "3":
         entry = Prompt.ask("Eingangsland (z.B. ch)")
         exit_co = Prompt.ask("Ausgangsland (z.B. de)")
         prefix, domain = f"{entry}-{exit_co}-", "protonvpn.com"
+        search_description = "Secure Core Server"
     elif mode == "4":
         prefix = Prompt.ask("Hostname-Präfix (z.B. is-nl-)")
         domain = Prompt.ask("Domain (z.B. protonvpn.com)")
+        search_description = f"manuelle Server ({prefix}*.{domain})"
     
     end_number = IntPrompt.ask("Bis zu welcher Nummer suchen?", default=50)
     hostnames = [f"{prefix}{i}.{domain}" if mode != '3' else f"{prefix}{i}a.{domain}" for i in range(1, end_number + 1)]
     
+    # NEU: Verwendet die Suchbeschreibung in der Fortschrittsanzeige.
     with Progress(SpinnerColumn(), BarColumn(), "[progress.percentage]{task.percentage:>3.0f}%", TextColumn("{task.description}"), console=console) as progress:
-        task = progress.add_task("[cyan]Prüfe Server...", total=len(hostnames))
+        task = progress.add_task(f"[cyan]Prüfe {search_description}...", total=len(hostnames))
         tasks = [check_server(h, progress, task, perform_ping) for h in hostnames]
         results = await asyncio.gather(*tasks)
     
-    display_results(results)
+    # NEU: Übergibt die Suchbeschreibung an die Ergebnisanzeige.
+    display_results(results, search_description)
 
 async def reverse_search():
     """UI-Funktion für die Reverse-Suche."""
@@ -239,7 +248,7 @@ async def main():
     """Hauptmenü und Programmschleife."""
     perform_ping = Confirm.ask("Ping-Test zur Latenzmessung durchführen? (erfordert ggf. Root-Rechte)", default=True)
     while True:
-        console.print(Panel.fit("[bold blue]Proton-Scanner v17 (Python Edition)[/bold blue]\nEin schnelles Analyse-Werkzeug mit verbesserter Fehlerbehandlung", border_style="blue"))
+        console.print(Panel.fit("[bold blue]Proton-Scanner v18 (Python Edition)[/bold blue]\nEin schnelles Analyse-Werkzeug mit verbesserter Fehlerbehandlung", border_style="blue"))
         choice = Prompt.ask("Wähle eine Aktion ([1] Server analysieren [2] Node-Finder [3] Beenden)", choices=["1", "2", "3"], default="1")
         if choice == "1": await analyze_servers(perform_ping)
         elif choice == "2": await reverse_search()
