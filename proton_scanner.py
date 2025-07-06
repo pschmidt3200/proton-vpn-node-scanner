@@ -93,6 +93,8 @@ from icmplib import async_ping, exceptions
 # --- Globale Konfiguration ---
 console = Console()
 resolver = dns.asyncresolver.Resolver()
+# KORREKTUR: Feste, öffentliche DNS-Server zuweisen, um die Zuverlässigkeit zu erhöhen
+resolver.nameservers = ['1.1.1.1', '8.8.8.8'] 
 resolver.timeout = 2
 resolver.lifetime = 2
 permissions_warning_shown = False
@@ -118,7 +120,7 @@ async def get_reverse_dns(ip: str) -> Optional[str]:
     except Exception: return None
 
 async def check_server(hostname: str, progress, task, perform_ping: bool) -> Optional[dict]:
-    """Führt eine komplette Analyse für einen einzelnen Server durch, jetzt mit Fehlerbehandlung für Pings."""
+    """Führt eine komplette Analyse für einen einzelnen Server durch."""
     ips = await get_ips(hostname)
     progress.update(task, advance=1)
     if not ips["a"] and not ips["aaaa"]: return None
@@ -147,7 +149,6 @@ async def check_server(hostname: str, progress, task, perform_ping: bool) -> Opt
 
 def display_results(results: List[dict], search_description: str):
     """Zeigt die gefundenen Server in einer formatierten Tabelle an."""
-    # NEU: Verwendet die Suchbeschreibung in der "Nicht gefunden"-Nachricht.
     if not any(results):
         console.print(f"[yellow]Keine {search_description} im angegebenen Bereich gefunden.[/yellow]")
         return
@@ -198,13 +199,11 @@ async def analyze_servers(perform_ping: bool):
     end_number = IntPrompt.ask("Bis zu welcher Nummer suchen?", default=50)
     hostnames = [f"{prefix}{i}.{domain}" if mode != '3' else f"{prefix}{i}a.{domain}" for i in range(1, end_number + 1)]
     
-    # NEU: Verwendet die Suchbeschreibung in der Fortschrittsanzeige.
     with Progress(SpinnerColumn(), BarColumn(), "[progress.percentage]{task.percentage:>3.0f}%", TextColumn("{task.description}"), console=console) as progress:
         task = progress.add_task(f"[cyan]Prüfe {search_description}...", total=len(hostnames))
         tasks = [check_server(h, progress, task, perform_ping) for h in hostnames]
         results = await asyncio.gather(*tasks)
     
-    # NEU: Übergibt die Suchbeschreibung an die Ergebnisanzeige.
     display_results(results, search_description)
 
 async def reverse_search():
@@ -248,7 +247,7 @@ async def main():
     """Hauptmenü und Programmschleife."""
     perform_ping = Confirm.ask("Ping-Test zur Latenzmessung durchführen? (erfordert ggf. Root-Rechte)", default=True)
     while True:
-        console.print(Panel.fit("[bold blue]Proton-Scanner v18 (Python Edition)[/bold blue]\nEin schnelles Analyse-Werkzeug mit verbesserter Fehlerbehandlung", border_style="blue"))
+        console.print(Panel.fit("[bold blue]Proton-Scanner v19 (Python Edition)[/bold blue]\nEin schnelles Analyse-Werkzeug mit robuster DNS-Auflösung", border_style="blue"))
         choice = Prompt.ask("Wähle eine Aktion ([1] Server analysieren [2] Node-Finder [3] Beenden)", choices=["1", "2", "3"], default="1")
         if choice == "1": await analyze_servers(perform_ping)
         elif choice == "2": await reverse_search()
