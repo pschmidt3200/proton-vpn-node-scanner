@@ -1,6 +1,6 @@
 # 🛡️ Proton-Scanner (v20)
 
-Ein schnelles, modernes und asynchrones Analyse- und Diagnose-Werkzeug für **ProtonVPN-Server**, geschrieben in Python 3.10+ mit `asyncio`, `dnspython`, `icmplib` und `rich`.
+Ein schnelles, modernes und asynchrones Analyse- und Diagnose-Werkzeug für **ProtonVPN-Server**, geschrieben in Python 3.10+ mit `asyncio`, `dnspython` und `rich`.
 
 Das Tool bietet sowohl ein komfortables, interaktives Terminal-Menü als auch vollwertige CLI-Befehle (inkl. JSON-Export) für Scripting und Automatisierung.
 
@@ -13,7 +13,7 @@ Das Tool bietet sowohl ein komfortables, interaktives Terminal-Menü als auch vo
 * **Native IP-Erkennung:** Strikte Validierung von IPv4 und IPv6 über Pythons Standardbibliothek `ipaddress`.
 * **Flexibler DNS-Resolver:** Nutzt standardmäßig den System-DNS und erlaubt die optionale Wahl schneller Resolver (Cloudflare `1.1.1.1`, Google `8.8.8.8`, Quad9 `9.9.9.9` oder eigene Resolver via CLI).
 * **Detaillierte Fehlerstatistik:** Saubere Differenzierung von aktiven Servern, `NXDOMAIN`, fehlenden Records (`NoAnswer`), Timeouts und Fehlern.
-* **Robuste Latenzmessung:** Asynchroner Ping mit automatischem Fallback auf das System-Ping-Binary bei restriktiven Socket-Rechten.
+* **Zero-Setup Latenzmessung:** Nutzt standardmäßig das Linux-System-Ping (`/bin/ping`) ohne Root-Rechte oder Socket-Einschränkungen. Optional kann `icmplib` für reinen Python-Socket-Ping genutzt werden.
 * **Dualer Betriebsmodus:** Interaktives Menü oder automatisierbare CLI-Flags (`scan`, `reverse`, `--json`).
 * **CI/CD & Tests:** 100 % getestete Kernfunktionen mit `pytest`, Linting via `ruff` und GitHub Actions CI.
 * **Saubere Sprachstatistik:** Historische Bash-Skripte sind unter `legacy/bash/` archiviert und via `.gitattributes` markiert, sodass das Repository auf GitHub sauber als Python-Projekt geführt wird.
@@ -27,25 +27,35 @@ Benötigt **Python 3.10+**.
 ### 1. Repository klonen
 
 ```bash
-git clone https://github.com/pschmidt3200/proton-vpn-scanner.git
+git clone git@github.com:pschmidt3200/proton-vpn-scanner.git
 cd proton-vpn-scanner
 ```
 
-### 2. Virtuelle Umgebung & Abhängigkeiten
+### 2. Abhängigkeiten installieren
+
+Das Tool benötigt lediglich **zwei** Kernpakete: `rich` und `dnspython`.
+
+#### Variante A: Virtuelle Umgebung (Empfohlen)
 
 ```bash
-# Virtuelle Umgebung erstellen und aktivieren
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Abhängigkeiten via pyproject.toml installieren
+# Basis-Installation
 pip install .
 
 # Für Entwickler (inkl. pytest & ruff):
 pip install .[dev]
 ```
 
-Alternativ prüft das Skript beim Direktstart `python3 proton_scanner.py` fehlende Abhängigkeiten und bietet passende Paketmanager-Befehle (Debian/Ubuntu, Arch, Fedora, Gentoo) unter Berücksichtigung von **PEP 668** an.
+#### Variante B: Direkt über den Linux-Paketmanager
+
+Wer keine virtuelle Umgebung nutzen möchte, kann die beiden Pakete direkt über den Paketmanager der Distribution installieren:
+
+* **Gentoo:** `sudo emerge --ask dev-python/rich dev-python/dnspython`
+* **Arch Linux:** `sudo pacman -S python-rich python-dnspython`
+* **Debian / Ubuntu:** `sudo apt install python3-rich python3-dnspython`
+* **Fedora:** `sudo dnf install python3-rich python3-dnspython`
 
 ---
 
@@ -53,7 +63,7 @@ Alternativ prüft das Skript beim Direktstart `python3 proton_scanner.py` fehlen
 
 ### 1. Interaktiver Menü-Modus
 
-Starte das Skript ohne Argumente:
+Starte das Skript einfach ohne Argumente:
 
 ```bash
 python3 proton_scanner.py
