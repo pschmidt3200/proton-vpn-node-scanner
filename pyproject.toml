@@ -26,11 +26,14 @@ classifiers = [
 dependencies = [
     "rich>=13.0.0",
     "dnspython>=2.3.0",
-    "icmplib>=3.0.0",
 ]
 
 [project.optional-dependencies]
+fast-ping = [
+    "icmplib>=3.0.0",
+]
 dev = [
+    "icmplib>=3.0.0",
     "pytest>=8.0.0",
     "ruff>=0.3.0",
 ]

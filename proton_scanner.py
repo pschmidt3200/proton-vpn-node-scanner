@@ -82,15 +82,16 @@ def get_distro_specific_advice(packages: list[str]) -> str:
 
 
 def check_and_install_dependencies() -> bool:
-    """Prüft benötigte Pakete und bietet bei Bedarf automatische Installation an."""
-    required = {"rich": "rich", "dns": "dnspython", "icmplib": "icmplib"}
+    """Prüft zwingend benötigte Pakete (rich, dnspython) und bietet bei Bedarf Installation an."""
+    # icmplib ist optional: wenn es fehlt, greift automatisch der System-Ping (/bin/ping)
+    required = {"rich": "rich", "dns": "dnspython"}
     missing = [pkg for mod, pkg in required.items() if importlib.util.find_spec(mod) is None]
 
     if not missing:
         return True
 
     print("--- Abhängigkeitsprüfung ---")
-    print("Die folgenden Pakete fehlen für Proton-Scanner:")
+    print("Die folgenden Basis-Pakete fehlen für Proton-Scanner:")
     for pkg in missing:
         print(f"  - {pkg}")
 
@@ -104,24 +105,24 @@ def check_and_install_dependencies() -> bool:
 
     if user_choice in ("j", "y", ""):
         print("\nInstalliere Pakete...")
-        try:
-            subprocess.check_call(
-                [sys.executable, "-m", "pip", "install", *missing],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
+        res = subprocess.run(
+            [sys.executable, "-m", "pip", "install", *missing],
+            capture_output=True,
+            text=True,
+        )
+        if res.returncode == 0:
             print("✅ Installation erfolgreich! Bitte starte das Skript neu.")
             return False
-        except subprocess.CalledProcessError as e:
-            err = e.stderr.decode(errors="replace") if e.stderr else ""
-            if "externally-managed-environment" in err:
+        else:
+            err = (res.stderr or res.stdout).strip()
+            if "externally-managed-environment" in err.lower():
                 advice = get_distro_specific_advice(missing)
                 print("\n❌ Fehler: Systemumgebung ist extern verwaltet (PEP 668).")
                 print("Lösungsmöglichkeiten:")
                 print(f"  1. System-Paketmanager: `{advice}`")
                 print("  2. Virtuelle Umgebung: `python -m venv .venv && source .venv/bin/activate`")
             else:
-                print(f"\n❌ Installationsfehler: {err or 'Unbekannter Fehler'}")
+                print(f"\n❌ Installationsfehler:\n{err or 'Unbekannter Fehler'}")
                 print(f"   Manuell ausführen: `pip install {' '.join(missing)}`")
     else:
         print("Installation abgebrochen.")
@@ -139,8 +140,16 @@ import dns.asyncresolver
 import dns.exception
 import dns.resolver
 import dns.reversename
-from icmplib import async_ping
-from icmplib import exceptions as icmp_exceptions
+
+try:
+    from icmplib import async_ping
+    from icmplib import exceptions as icmp_exceptions
+    HAS_ICMPLIB = True
+except ImportError:
+    async_ping = None
+    icmp_exceptions = None
+    HAS_ICMPLIB = False
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
@@ -257,31 +266,32 @@ def create_resolver(nameservers: list[str] | None = None, timeout: float = 2.0) 
 async def ping_ip(ip: str, timeout: float = 1.0) -> float | None:
     """
     Führt einen Ping-Test durch.
-    Nutzt icmplib unprivileged Datagram-Sockets, mit transparentem Fallback auf System-Ping.
+    Nutzt icmplib falls installiert, ansonsten transparenten Fallback auf System-Ping (/bin/ping).
     """
-    try:
-        host = await async_ping(ip, count=1, timeout=timeout, privileged=False)
-        if host.is_alive:
-            return round(host.avg_rtt, 2)
-    except (icmp_exceptions.SocketPermissionError, icmp_exceptions.ICMPSocketError, OSError):
-        # Fallback auf Standard-System-Ping (/bin/ping)
+    if HAS_ICMPLIB and async_ping is not None:
         try:
-            cmd = ["ping", "-c", "1", "-W", str(int(max(1, timeout))), ip]
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.DEVNULL,
-            )
-            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout + 0.5)
-            if proc.returncode == 0:
-                out = stdout.decode(errors="replace")
-                m = re.search(r"time[=<]\s*([\d.]+)\s*ms", out) or re.search(
-                    r"= [\d.]+/([\d.]+)/[\d.]+", out
-                )
-                if m:
-                    return round(float(m.group(1)), 2)
+            host = await async_ping(ip, count=1, timeout=timeout, privileged=False)
+            if host.is_alive:
+                return round(host.avg_rtt, 2)
         except Exception:
-            return None
+            pass
+
+    # Fallback auf Standard-System-Ping (/bin/ping oder /usr/bin/ping)
+    try:
+        cmd = ["ping", "-c", "1", "-W", str(int(max(1, timeout))), ip]
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout + 0.5)
+        if proc.returncode == 0:
+            out = stdout.decode(errors="replace")
+            m = re.search(r"time[=<]\s*([\d.]+)\s*ms", out, re.IGNORECASE) or re.search(
+                r"= [\d.]+/([\d.]+)/[\d.]+", out
+            )
+            if m:
+                return round(float(m.group(1)), 2)
     except Exception:
         return None
     return None

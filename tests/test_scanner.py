@@ -153,7 +153,10 @@ def test_get_ptr_success():
 
 def test_ping_ip_icmplib_alive():
     async def _test():
-        with patch("proton_scanner.async_ping", new_callable=AsyncMock) as mock_ping:
+        with (
+            patch("proton_scanner.HAS_ICMPLIB", True),
+            patch("proton_scanner.async_ping", new_callable=AsyncMock) as mock_ping,
+        ):
             mock_host = MagicMock()
             mock_host.is_alive = True
             mock_host.avg_rtt = 14.567
@@ -161,6 +164,25 @@ def test_ping_ip_icmplib_alive():
 
             rtt = await ping_ip("185.159.157.1")
             assert rtt == 14.57
+
+    asyncio.run(_test())
+
+
+def test_ping_ip_system_fallback():
+    async def _test():
+        with (
+            patch("proton_scanner.HAS_ICMPLIB", False),
+            patch("asyncio.create_subprocess_exec") as mock_exec,
+        ):
+            mock_proc = MagicMock()
+            mock_proc.returncode = 0
+            mock_proc.communicate = AsyncMock(
+                return_value=(b"64 bytes from 1.1.1.1: icmp_seq=1 ttl=53 time=18.72 ms\n", b"")
+            )
+            mock_exec.return_value = mock_proc
+
+            rtt = await ping_ip("1.1.1.1")
+            assert rtt == 18.72
 
     asyncio.run(_test())
 
