@@ -97,10 +97,11 @@ def test_generate_hostnames_invalid_mode():
 
 
 def test_scan_stats_summary():
-    stats = ScanStats(total=10, found=4, nxdomain=5, timeout=1)
+    stats = ScanStats(total=10, found=4, ipv6_nodes=2, nxdomain=5, timeout=1)
     summary = stats.summary()
     assert "Gesamt: 10" in summary
     assert "Gefunden: 4" in summary
+    assert "IPv6-fähige Nodes: 2" in summary
     assert "Nicht existent (NXDOMAIN): 5" in summary
     assert "Timeouts: 1" in summary
 

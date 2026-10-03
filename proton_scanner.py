@@ -163,13 +163,18 @@ console = Console()
 class ScanStats:
     total: int = 0
     found: int = 0
+    ipv6_nodes: int = 0
     nxdomain: int = 0
     no_answer: int = 0
     timeout: int = 0
     errors: int = 0
 
     def summary(self) -> str:
-        parts = [f"Gesamt: {self.total}", f"Gefunden: {self.found}"]
+        parts = [
+            f"Gesamt: {self.total}",
+            f"Gefunden: {self.found}",
+            f"IPv6-fähige Nodes: {self.ipv6_nodes}",
+        ]
         if self.nxdomain:
             parts.append(f"Nicht existent (NXDOMAIN): {self.nxdomain}")
         if self.no_answer:
@@ -337,6 +342,8 @@ async def resolve_ips_and_ptrs(
 
         if v4_ips or v6_ips:
             stats.found += 1
+            if v6_ips:
+                stats.ipv6_nodes += 1
         elif has_nxdomain:
             stats.nxdomain += 1
         elif has_timeout:
@@ -386,15 +393,15 @@ async def check_single_server(
         ptrs = await asyncio.gather(*ptr_tasks)
         ptr_map = dict(zip(all_ips, ptrs, strict=True))
 
-        # Ping-Tests (IPv4)
+        # Ping-Tests (IPv4 & IPv6)
         ping_map: dict[str, float | None] = {}
-        if perform_ping and v4_ips:
-            ping_tasks = [ping_ip(ip) for ip in v4_ips]
+        if perform_ping and all_ips:
+            ping_tasks = [ping_ip(ip) for ip in all_ips]
             pings = await asyncio.gather(*ping_tasks)
-            ping_map = dict(zip(v4_ips, pings, strict=True))
+            ping_map = dict(zip(all_ips, pings, strict=True))
 
         v4_res = [IpResult(ip=ip, ptr=ptr_map.get(ip), ping_ms=ping_map.get(ip)) for ip in v4_ips]
-        v6_res = [IpResult(ip=ip, ptr=ptr_map.get(ip)) for ip in v6_ips]
+        v6_res = [IpResult(ip=ip, ptr=ptr_map.get(ip), ping_ms=ping_map.get(ip)) for ip in v6_ips]
 
         return ServerResult(hostname=hostname, ipv4=v4_res, ipv6=v6_res)
 
@@ -420,7 +427,7 @@ def display_results_table(results: list[ServerResult], search_description: str, 
     table.add_column("Typ", style="blue")
     table.add_column("IP-Adresse", style="dim")
     table.add_column("Latenz (ms)", style="green", justify="right")
-    table.add_column("Reverse Hostname (PTR)", style="yellow")
+    table.add_column("Reverse Hostname (PTR)", style="yellow", overflow="fold")
 
     for res in results:
         for idx, ip_info in enumerate(res.ipv4):
@@ -428,8 +435,9 @@ def display_results_table(results: list[ServerResult], search_description: str, 
             node_label = f"[bold]{res.hostname}[/bold]" if idx == 0 else ""
             table.add_row(node_label, "IPv4", ip_info.ip, ping_str, ip_info.ptr or "-")
         for idx, ip_info in enumerate(res.ipv6):
+            ping_str = f"{ip_info.ping_ms:.2f}" if ip_info.ping_ms is not None else "-"
             node_label = f"[bold]{res.hostname}[/bold]" if not res.ipv4 and idx == 0 else ""
-            table.add_row(node_label, "IPv6", ip_info.ip, "-", ip_info.ptr or "-")
+            table.add_row(node_label, "IPv6", ip_info.ip, ping_str, ip_info.ptr or "-")
         table.add_section()
 
     console.print(table)
@@ -447,17 +455,20 @@ async def run_server_scan(
     resolver: dns.asyncresolver.Resolver,
     perform_ping: bool = True,
     concurrency: int = 50,
+    require_ipv6: bool = False,
+    sort_latency: bool = False,
 ) -> tuple[list[ServerResult], ScanStats]:
-    """Scannt eine Hostnamen-Liste mit kontrollierter Parallelität."""
+    """Scannt eine Hostnamen-Liste mit kontrollierter Parallelität und optionaler Deduplizierung/Filterung."""
     stats = ScanStats(total=len(hostnames))
     sem = asyncio.Semaphore(concurrency)
+    stderr_console = Console(stderr=True)
 
     with Progress(
         SpinnerColumn(),
         BarColumn(),
         "[progress.percentage]{task.percentage:>3.0f}%",
         TextColumn("{task.description}"),
-        console=console,
+        console=stderr_console,
     ) as progress:
         task_id = progress.add_task(f"[cyan]Prüfe {len(hostnames)} Server...", total=len(hostnames))
         tasks = [
@@ -466,8 +477,37 @@ async def run_server_scan(
         ]
         raw_results = await asyncio.gather(*tasks)
 
-    results = [r for r in raw_results if r is not None]
-    return results, stats
+    # Gefundene Server filtern
+    active_results = [r for r in raw_results if r is not None]
+
+    # Deduplizieren nach IP-Adressen (verhindert doppelte Listung von node-de-01 und node-de-1)
+    seen_ips: set[tuple[tuple[str, ...], tuple[str, ...]]] = set()
+    deduped_results: list[ServerResult] = []
+    for r in active_results:
+        v4_tuple = tuple(sorted(i.ip for i in r.ipv4))
+        v6_tuple = tuple(sorted(i.ip for i in r.ipv6))
+        ip_key = (v4_tuple, v6_tuple)
+        if (v4_tuple or v6_tuple) and ip_key in seen_ips:
+            continue
+        if v4_tuple or v6_tuple:
+            seen_ips.add(ip_key)
+        deduped_results.append(r)
+
+    # Optional: Nur Nodes mit aktiver IPv6-Adresse behalten
+    if require_ipv6:
+        final_results = [r for r in deduped_results if len(r.ipv6) > 0]
+    else:
+        final_results = deduped_results
+
+    # Optional: Nach bester Latenz sortieren
+    if sort_latency:
+        def best_latency(s: ServerResult) -> float:
+            pings = [i.ping_ms for i in s.ipv6 + s.ipv4 if i.ping_ms is not None]
+            return min(pings) if pings else float("inf")
+
+        final_results.sort(key=best_latency)
+
+    return final_results, stats
 
 
 async def run_reverse_search(
@@ -519,12 +559,13 @@ async def run_reverse_search(
             finally:
                 progress.update(task_id, advance=1)
 
+    stderr_console = Console(stderr=True)
     with Progress(
         SpinnerColumn(),
         BarColumn(),
         "[progress.percentage]{task.percentage:>3.0f}%",
         TextColumn("{task.description}"),
-        console=console,
+        console=stderr_console,
     ) as progress:
         task_id = progress.add_task(
             f"[cyan]Suche nach {target_ip} in {len(hostnames_to_check)} Nodes...",
@@ -564,6 +605,7 @@ async def interactive_analyze_servers(resolver: dns.asyncresolver.Resolver, perf
         domain = Prompt.ask("Domain", default="protonvpn.com", console=console)
 
     end_number = IntPrompt.ask("Bis zu welcher Nummer suchen?", default=50, console=console)
+    require_ipv6 = Confirm.ask("Nur IPv6-fähige Nodes anzeigen?", default=False, console=console)
     hostnames, desc = generate_hostnames(
         mode=mode,
         country_code=cc,
@@ -573,7 +615,13 @@ async def interactive_analyze_servers(resolver: dns.asyncresolver.Resolver, perf
         custom_domain=domain,
     )
 
-    results, stats = await run_server_scan(hostnames, desc, resolver, perform_ping=perform_ping)
+    results, stats = await run_server_scan(
+        hostnames,
+        desc,
+        resolver,
+        perform_ping=perform_ping,
+        require_ipv6=require_ipv6,
+    )
     display_results_table(results, desc, stats)
 
 
@@ -684,6 +732,8 @@ def parse_cli_args() -> argparse.Namespace:
     scan_p.add_argument("--count", type=int, default=50, help="Anzahl der Server")
     scan_p.add_argument("--dns", nargs="+", help="Spezifische DNS-Server nutzen (z.B. 1.1.1.1 8.8.8.8)")
     scan_p.add_argument("--no-ping", action="store_true", help="Ping-Messung deaktivieren")
+    scan_p.add_argument("--ipv6-only", "--require-ipv6", dest="ipv6_only", action="store_true", help="Nur Nodes mit aktiver IPv6-Adresse (AAAA) anzeigen")
+    scan_p.add_argument("--sort-latency", action="store_true", help="Ergebnisse nach bester Latenz sortieren")
     scan_p.add_argument("--concurrency", type=int, default=50, help="Gleichzeitige Abfragen (Default: 50)")
     scan_p.add_argument("--json", action="store_true", help="Ergebnisse als JSON ausgeben")
 
@@ -717,6 +767,8 @@ async def cli_main(args: argparse.Namespace):
             resolver,
             perform_ping=not args.no_ping,
             concurrency=args.concurrency,
+            require_ipv6=args.ipv6_only,
+            sort_latency=args.sort_latency,
         )
 
         if args.json:
@@ -725,6 +777,7 @@ async def cli_main(args: argparse.Namespace):
                 "stats": {
                     "total": stats.total,
                     "found": stats.found,
+                    "ipv6_nodes": stats.ipv6_nodes,
                     "nxdomain": stats.nxdomain,
                     "no_answer": stats.no_answer,
                     "timeout": stats.timeout,
@@ -734,7 +787,7 @@ async def cli_main(args: argparse.Namespace):
                     {
                         "hostname": s.hostname,
                         "ipv4": [{"ip": i.ip, "ptr": i.ptr, "ping_ms": i.ping_ms} for i in s.ipv4],
-                        "ipv6": [{"ip": i.ip, "ptr": i.ptr} for i in s.ipv6],
+                        "ipv6": [{"ip": i.ip, "ptr": i.ptr, "ping_ms": i.ping_ms} for i in s.ipv6],
                     }
                     for s in results
                 ],
