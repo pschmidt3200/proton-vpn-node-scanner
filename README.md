@@ -1,26 +1,26 @@
-# 🛡️ Proton-Scanner (v20)
+# Proton-Scanner (v20)
 
-Ein schnelles, modernes und asynchrones Analyse- und Diagnose-Werkzeug für **ProtonVPN-Server**, geschrieben in Python 3.10+ mit `asyncio`, `dnspython` und `rich`.
+Asynchrones Analyse- und Diagnose-Werkzeug für **ProtonVPN-Server**, geschrieben in Python 3.10+ mit `asyncio`, `dnspython` und `rich`.
 
-Das Tool bietet sowohl ein komfortables, interaktives Terminal-Menü als auch vollwertige CLI-Befehle (inkl. JSON-Export) für Scripting und Automatisierung.
+Das Programm bietet sowohl ein interaktives Terminal-Menü als auch vollwertige CLI-Befehle inklusive JSON-Ausgabe für Scripting und Automatisierung.
 
 ---
 
-## ✨ Features & Neuerungen (v20)
+## Funktionen & Neuerungen
 
-* **Kontrollierte Parallelität (`asyncio.Semaphore`):** Schnelle Abfragen hunderter Server ohne DNS-Überlastung oder Timeouts.
-* **Vollständig asynchroner Node-Finder:** Parallele Reverse-Suche nach Ziel-IPs über Länder und Servernummern hinweg in Sekunden.
+* **Kontrollierte Parallelität (`asyncio.Semaphore`):** Schnelle Abfragen mehrerer Server ohne DNS-Überlastung oder Timeouts.
+* **Asynchroner Node-Finder:** Parallele Reverse-Suche nach Ziel-IPs über Länder und Servernummern hinweg.
 * **Native IP-Erkennung:** Strikte Validierung von IPv4 und IPv6 über Pythons Standardbibliothek `ipaddress`.
-* **Flexibler DNS-Resolver:** Nutzt standardmäßig den System-DNS und erlaubt die optionale Wahl schneller Resolver (Cloudflare `1.1.1.1`, Google `8.8.8.8`, Quad9 `9.9.9.9` oder eigene Resolver via CLI).
-* **Detaillierte Fehlerstatistik:** Saubere Differenzierung von aktiven Servern, `NXDOMAIN`, fehlenden Records (`NoAnswer`), Timeouts und Fehlern.
-* **Zero-Setup Latenzmessung:** Nutzt standardmäßig das Linux-System-Ping (`/bin/ping`) ohne Root-Rechte oder Socket-Einschränkungen. Optional kann `icmplib` für reinen Python-Socket-Ping genutzt werden.
-* **Dualer Betriebsmodus:** Interaktives Menü oder automatisierbare CLI-Flags (`scan`, `reverse`, `--json`).
-* **CI/CD & Tests:** 100 % getestete Kernfunktionen mit `pytest`, Linting via `ruff` und GitHub Actions CI.
-* **Saubere Sprachstatistik:** Historische Bash-Skripte sind unter `legacy/bash/` archiviert und via `.gitattributes` markiert, sodass das Repository auf GitHub sauber als Python-Projekt geführt wird.
+* **Flexibler DNS-Resolver:** Standardmäßige Nutzung des System-DNS mit optionaler Auswahl alternativer Resolver (z. B. Cloudflare `1.1.1.1`, Google `8.8.8.8`, Quad9 `9.9.9.9` oder per CLI konfigurierbar).
+* **Differenzierte Fehlerstatistik:** Saubere Erfassung von aktiven Servern, `NXDOMAIN`, fehlenden Records (`NoAnswer`), Timeouts und Netzwerkfehlern.
+* **Zero-Setup Latenzmessung:** Nutzt standardmäßig das System-Ping (`/bin/ping`) ohne zusätzliche Socket-Rechte. Optional kann `icmplib` für reinen Python-Socket-Ping verwendet werden.
+* **Dualer Betriebsmodus:** Interaktives Menü oder automatisierbare CLI-Optionen (`scan`, `reverse`, `--json`).
+* **CI/CD & Tests:** Vollständig getestete Kernfunktionen mit `pytest`, Linting via `ruff` und GitHub Actions CI.
+* **Saubere Sprachstatistik:** Historische Bash-Skripte sind unter `legacy/bash/` archiviert und via `.gitattributes` markiert, sodass das Repository auf GitHub primär als Python geführt wird.
 
 ---
 
-## ⚙️ Voraussetzungen & Installation
+## Voraussetzungen & Installation
 
 Benötigt **Python 3.10+**.
 
@@ -33,9 +33,9 @@ cd proton-vpn-scanner
 
 ### 2. Abhängigkeiten installieren
 
-Das Tool benötigt lediglich **zwei** Kernpakete: `rich` und `dnspython`.
+Das Tool benötigt zwei Basis-Pakete: `rich` und `dnspython`.
 
-#### Variante A: Virtuelle Umgebung (Empfohlen)
+#### Variante A: Virtuelle Umgebung (empfohlen)
 
 ```bash
 python3 -m venv .venv
@@ -48,9 +48,9 @@ pip install .
 pip install .[dev]
 ```
 
-#### Variante B: Direkt über den Linux-Paketmanager
+#### Variante B: Über den Linux-Paketmanager
 
-Wer keine virtuelle Umgebung nutzen möchte, kann die beiden Pakete direkt über den Paketmanager der Distribution installieren:
+Wer keine virtuelle Umgebung nutzen möchte, kann die beiden Pakete über den Paketmanager der Distribution installieren:
 
 * **Gentoo:** `sudo emerge --ask dev-python/rich dev-python/dnspython`
 * **Arch Linux:** `sudo pacman -S python-rich python-dnspython`
@@ -59,19 +59,19 @@ Wer keine virtuelle Umgebung nutzen möchte, kann die beiden Pakete direkt über
 
 ---
 
-## 🚀 Verwendung
+## Verwendung
 
 ### 1. Interaktiver Menü-Modus
 
-Starte das Skript einfach ohne Argumente:
+Start ohne zusätzliche Argumente:
 
 ```bash
 python3 proton_scanner.py
 ```
 
-Das Menü führt durch alle Optionen:
-1. **Server analysieren:** Auswahl des Server-Typs (WireGuard, OpenVPN, Secure Core, Manuell), Länderauswahl, Bereichsgröße und Ping-Test.
-2. **Node-Finder (Reverse-Suche):** Ermittelt in Sekundenschnelle, welcher ProtonVPN-Node zu einer bestimmten IP-Adresse gehört.
+Das Menü führt durch folgende Optionen:
+1. **Server analysieren:** Auswahl des Server-Typs (WireGuard, OpenVPN, Secure Core, Manuell), Länderauswahl, Bereichsgröße und Ping-Messung.
+2. **Node-Finder (Reverse-Suche):** Ermittelt, welcher ProtonVPN-Node zu einer bestimmten IP-Adresse gehört.
 3. **DNS-Resolver:** Wählbar zwischen System-Standard, Cloudflare, Google oder Quad9.
 
 ---
@@ -83,10 +83,10 @@ Proton-Scanner kann direkt über Parameter in Shell-Skripten, Cronjobs oder Moni
 #### A. Server-Bereich scannen
 
 ```bash
-# Moderne WireGuard-Nodes für Deutschland scannen (1-50):
+# WireGuard-Nodes für Deutschland scannen (1-50):
 python3 proton_scanner.py scan --mode 2 --cc de --count 50
 
-# Klassische OpenVPN-Server für die Schweiz als JSON ausgeben (ohne Ping):
+# OpenVPN-Server für die Schweiz als JSON ausgeben (ohne Ping):
 python3 proton_scanner.py scan --mode 1 --cc ch --count 20 --no-ping --json
 
 # Mit spezifischem DNS-Resolver und angepasster Parallelität:
@@ -96,16 +96,16 @@ python3 proton_scanner.py scan --mode 2 --cc nl --count 100 --dns 1.1.1.1 --conc
 #### B. Node-Finder (Reverse-Suche)
 
 ```bash
-# Herausfinden, zu welchem Node eine IP gehört:
+# Node zu einer Ziel-IP ermitteln:
 python3 proton_scanner.py reverse --target 62.112.9.164 --countries nl de ch --count 50
 
-# Maschinenlesbare Ausgabe als JSON:
+# Strukturierte Ausgabe als JSON:
 python3 proton_scanner.py reverse --target 62.112.9.164 --json
 ```
 
 ---
 
-## 🧪 Tests & Qualitätssicherung
+## Tests & Qualitätssicherung
 
 Das Projekt wird mit `pytest` und `ruff` validiert:
 
@@ -119,7 +119,7 @@ ruff check .
 
 ---
 
-## 📜 Historie & Lizenz
+## Historie & Lizenz
 
-* **Historie:** Das Projekt begann als Sammlung pragmatischer Bash-Skripte und entwickelte sich schrittweise zu einer performanten Python-Lösung. Die früheren Skripte sind zur Dokumentation im Ordner [`legacy/bash/`](legacy/bash/) archiviert.
+* **Historie:** Das Projekt entstand ursprünglich als Sammlung einfacher Bash-Skripte und wurde schrittweise auf Python und `asyncio` umgestellt. Die früheren Versionen sind zur Dokumentation im Verzeichnis [`legacy/bash/`](legacy/bash/) archiviert.
 * **Lizenz:** Dieses Projekt steht unter der **[MIT-Lizenz](LICENSE)**.

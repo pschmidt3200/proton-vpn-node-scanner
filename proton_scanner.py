@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-🛡️ Proton-Scanner (v20)
-Ein schnelles, modernes und asynchrones Analyse-Werkzeug für ProtonVPN-Server.
-Unterstützt interaktive Rich-CLI sowie automatisierte Kommandozeilen-Argumente.
+Proton-Scanner (v20)
+Asynchrones Analyse- und Diagnose-Werkzeug für ProtonVPN-Server.
+Unterstützt interaktive Terminal-Bedienung sowie Kommandozeilen-Parameter.
 """
 
 from __future__ import annotations
@@ -26,8 +26,8 @@ from typing import Any
 MIN_PYTHON = (3, 10)
 if sys.version_info < MIN_PYTHON:
     sys.exit(
-        f"❌ Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]}+ erforderlich. "
-        f"Aktuell installiert: Python {sys.version_info.major}.{sys.version_info.minor}"
+        f"Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]}+ erforderlich. "
+        f"Installiert: Python {sys.version_info.major}.{sys.version_info.minor}"
     )
 
 
@@ -111,18 +111,18 @@ def check_and_install_dependencies() -> bool:
             text=True,
         )
         if res.returncode == 0:
-            print("✅ Installation erfolgreich! Bitte starte das Skript neu.")
+            print("Installation erfolgreich. Bitte starte das Skript neu.")
             return False
         else:
             err = (res.stderr or res.stdout).strip()
             if "externally-managed-environment" in err.lower():
                 advice = get_distro_specific_advice(missing)
-                print("\n❌ Fehler: Systemumgebung ist extern verwaltet (PEP 668).")
+                print("\nFehler: Systemumgebung ist extern verwaltet (PEP 668).")
                 print("Lösungsmöglichkeiten:")
                 print(f"  1. System-Paketmanager: `{advice}`")
                 print("  2. Virtuelle Umgebung: `python -m venv .venv && source .venv/bin/activate`")
             else:
-                print(f"\n❌ Installationsfehler:\n{err or 'Unbekannter Fehler'}")
+                print(f"\nInstallationsfehler:\n{err or 'Unbekannter Fehler'}")
                 print(f"   Manuell ausführen: `pip install {' '.join(missing)}`")
     else:
         print("Installation abgebrochen.")
@@ -433,7 +433,7 @@ def display_results_table(results: list[ServerResult], search_description: str, 
         table.add_section()
 
     console.print(table)
-    console.print(f"\n[bold cyan]📊 Statistik:[/bold cyan] {stats.summary()}")
+    console.print(f"\n[bold cyan]Statistik:[/bold cyan] {stats.summary()}")
 
 
 # ==============================================================================
@@ -597,7 +597,7 @@ async def interactive_reverse_search(resolver: dns.asyncresolver.Resolver):
             console.print(f"[red]Fehler: Konnte keine IP für '{user_input}' auflösen.[/red]")
             return
 
-    console.print(f"[green]✅ Ziel-IP ({ip_type}):[/green] [bold]{target_ip}[/bold]")
+    console.print(f"[green]Ziel-IP ({ip_type}):[/green] [bold]{target_ip}[/bold]")
     ccs_raw = Prompt.ask(
         "Zu durchsuchende Länderkürzel (getrennt durch Leerzeichen)",
         default="de ch at us",
@@ -609,9 +609,9 @@ async def interactive_reverse_search(resolver: dns.asyncresolver.Resolver):
     hits = await run_reverse_search(target_ip, ip_type, countries, end_number, resolver)
 
     if hits:
-        console.print(f"\n[bold green]✅✅✅ TREFFER GEFUNDEN! ({len(hits)}) ✅✅✅[/bold green]")
+        console.print(f"\n[bold green]Treffer gefunden ({len(hits)}):[/bold green]")
         for h in hits:
-            console.print(f"  ➜ Die IP [bold]{target_ip}[/bold] gehört zu: [bold cyan]{h}[/bold cyan]")
+            console.print(f"  Die IP [bold]{target_ip}[/bold] gehört zu: [bold cyan]{h}[/bold cyan]")
     else:
         console.print(f"\n[yellow]Suche beendet. Kein Node für IP {target_ip} gefunden.[/yellow]")
 
@@ -620,7 +620,7 @@ async def interactive_main():
     """Startet das interaktive Rich-Hauptmenü."""
     console.print(
         Panel.fit(
-            "[bold blue]🛡️ Proton-Scanner v20[/bold blue]\n"
+            "[bold blue]Proton-Scanner v20[/bold blue]\n"
             "Asynchrones Analyse-Werkzeug mit kontrollierter Parallelität & nativer IP-Validierung",
             border_style="blue",
         )
