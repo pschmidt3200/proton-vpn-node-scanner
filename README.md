@@ -34,8 +34,8 @@ Benötigt **Python 3.10+**.
 ### 1. Repository klonen
 
 ```bash
-git clone git@github.com:pschmidt3200/proton-vpn-scanner.git
-cd proton-vpn-scanner
+git clone git@github.com:pschmidt3200/proton-vpn-node-scanner.git
+cd proton-vpn-node-scanner
 ```
 
 ### 2. Abhängigkeiten installieren

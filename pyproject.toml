@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "proton-vpn-scanner"
+name = "proton-vpn-node-scanner"
 version = "20.0.0"
 description = "Ein asynchrones Analyse- und Diagnose-Werkzeug für ProtonVPN-Nodes"
 readme = "README.md"
