@@ -1,63 +1,65 @@
 # Proton-Scanner (v20)
 
-Asynchrones Analyse- und Diagnose-Werkzeug für **ProtonVPN-Server**, geschrieben in Python 3.10+ mit `asyncio`, `dnspython` und `rich`.
+**English** | [Deutsch](README.de.md)
 
-Der primäre Einsatzzweck des Scanners liegt im **Auffinden und Zuordnen von IPv6-fähigen ProtonVPN-Nodes** (AAAA-Records), um deren IPv6-Adressen als dedizierte VPN-Endpunkte zu ermitteln, Latenzen zu vergleichen und technische Hostnamen zuzuordnen.
+An asynchronous analysis and diagnostics tool for **ProtonVPN servers**, written in Python 3.10+ using `asyncio`, `dnspython`, and `rich`.
 
-Das Programm bietet sowohl ein interaktives Terminal-Menü als auch vollwertige CLI-Befehle inklusive JSON-Ausgabe für Scripting und Automatisierung.
+The primary focus of this scanner is **discovering and mapping IPv6-capable ProtonVPN nodes** (AAAA records) to identify their IPv6 addresses for use as dedicated VPN endpoints, compare network latencies, and map technical hostnames.
 
----
-
-## Funktionen & Neuerungen
-
-* **Gezielte IPv6-Identifikation:** Ermittelt verlässlich aktive IPv6-Adressen (AAAA-Records) und misst deren Latenzzeiten parallel zu IPv4.
-* **IPv6-Filter (`--ipv6-only`):** Filtert Suchläufe auf Nodes, die tatsächlich über eine funktionierende IPv6-Adresse verfügen.
-* **Latenz-Sortierung (`--sort-latency`):** Sortiert gefundene Server auf Wunsch aufsteigend nach der niedrigsten gemessenen Antwortzeit.
-* **Deduplizierung:** Verhindert doppelte Listung, wenn ProtonVPN-Server unter mehreren Hostnamen (z. B. `node-de-01` und `node-de-1`) dieselben IP-Adressen teilen.
-* **Kontrollierte Parallelität (`asyncio.Semaphore`):** Schnelle Abfragen mehrerer Server ohne DNS-Überlastung oder Timeouts.
-* **Asynchroner Node-Finder:** Parallele Reverse-Suche nach Ziel-IPs über Länder und Servernummern hinweg.
-* **Native IP-Erkennung:** Strikte Validierung von IPv4 und IPv6 über Pythons Standardbibliothek `ipaddress`.
-* **Flexibler DNS-Resolver:** Standardmäßige Nutzung des System-DNS mit optionaler Auswahl alternativer Resolver (z. B. Cloudflare `1.1.1.1`, Google `8.8.8.8`, Quad9 `9.9.9.9` oder per CLI konfigurierbar).
-* **Differenzierte Fehlerstatistik:** Saubere Erfassung von aktiven Servern, IPv6-fähigen Nodes, `NXDOMAIN`, fehlenden Records (`NoAnswer`), Timeouts und Netzwerkfehlern.
-* **Zero-Setup Latenzmessung:** Nutzt standardmäßig das System-Ping (`/bin/ping`) für IPv4 und IPv6 ohne zusätzliche Socket-Rechte. Optional kann `icmplib` für reinen Python-Socket-Ping verwendet werden.
-* **Saubere JSON-Pipes:** Progress-Bars werden auf `stderr` geroutet, sodass `stdout` bei `--json` zu 100 % valide und pipebar bleibt (z. B. mit `jq`).
-* **CI/CD & Tests:** Vollständig getestete Kernfunktionen mit `pytest`, Linting via `ruff` und GitHub Actions CI.
-
-> **Hinweis zur VPN-Konnektivität:** Das Auffinden eines AAAA-Records und erfolgreiche ICMP-Pings bestätigen die Erreichbarkeit der IPv6-Adresse des Nodes. Ob der VPN-Dienst (z. B. WireGuard auf Port 51820) auf dem spezifischen Node für IPv6 freigeschaltet ist, hängt von der jeweiligen Server-Konfiguration ab.
+The program provides both an interactive terminal interface and fully scriptable CLI commands with JSON output for automated pipelines.
 
 ---
 
-## Voraussetzungen & Installation
+## Features
 
-Benötigt **Python 3.10+**.
+* **Targeted IPv6 Discovery:** Reliably resolves active IPv6 addresses (AAAA records) and measures round-trip latency alongside IPv4.
+* **IPv6 Filter (`--ipv6-only`):** Filters search results to only include nodes with an active IPv6 address.
+* **Latency Sorting (`--sort-latency`):** Sorts discovered servers ascending by lowest latency.
+* **Deduplication:** Prevents duplicate entries when ProtonVPN servers share the same IP addresses across naming schemes (e.g. `node-de-01` and `node-de-1`).
+* **Controlled Concurrency (`asyncio.Semaphore`):** Rapid server querying without DNS overload or timeouts.
+* **Asynchronous Node Finder:** Concurrent reverse lookup of target IP addresses across country codes and node ranges.
+* **Native IP Validation:** Strict IPv4 and IPv6 parsing using Python's standard `ipaddress` library.
+* **Configurable DNS Resolver:** Uses the system DNS by default with optional switches for public resolvers (e.g. Cloudflare `1.1.1.1`, Google `8.8.8.8`, Quad9 `9.9.9.9`, or custom IPs via CLI).
+* **Detailed Error Statistics:** Distinct counters for active servers, IPv6 nodes, `NXDOMAIN`, missing records (`NoAnswer`), timeouts, and network errors.
+* **Zero-Setup Ping:** Standardizes on system ping (`/bin/ping`) for both IPv4 and IPv6 without requiring special socket capabilities or root permissions. Optional `icmplib` support for pure Python ICMP.
+* **Clean JSON Output:** Progress bars are sent to `stderr`, keeping `stdout` strictly valid JSON when using `--json` (compatible with `jq` and file redirection).
+* **CI/CD & Tests:** Full test suite with `pytest`, linting with `ruff`, and GitHub Actions CI workflow.
 
-### 1. Repository klonen
+> **Note on VPN Connectivity:** Discovering a valid AAAA record and responding ICMP pings confirms network reachability of the node's IPv6 address. Whether the VPN service (e.g. WireGuard on UDP port 51820) is enabled for incoming IPv6 connections depends on ProtonVPN's server-side configuration.
+
+---
+
+## Requirements & Installation
+
+Requires **Python 3.10+**.
+
+### 1. Clone the repository
 
 ```bash
 git clone git@github.com:pschmidt3200/proton-vpn-node-scanner.git
 cd proton-vpn-node-scanner
 ```
 
-### 2. Abhängigkeiten installieren
+### 2. Install dependencies
 
-Das Tool benötigt zwei Basis-Pakete: `rich` und `dnspython`.
+The tool only requires two base packages: `rich` and `dnspython`.
 
-#### Variante A: Virtuelle Umgebung (empfohlen)
+#### Option A: Virtual Environment (Recommended)
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Basis-Installation
+# Base installation
 pip install .
 
-# Für Entwickler (inkl. pytest & ruff):
+# For development (includes pytest & ruff):
 pip install .[dev]
 ```
 
-#### Variante B: Über den Linux-Paketmanager
+#### Option B: Via Linux Package Manager
 
-Wer keine virtuelle Umgebung nutzen möchte, kann die beiden Pakete über den Paketmanager der Distribution installieren:
+To install without a virtual environment, use your distribution's package manager:
 
 * **Gentoo:** `sudo emerge --ask dev-python/rich dev-python/dnspython`
 * **Arch Linux:** `sudo pacman -S python-rich python-dnspython`
@@ -66,70 +68,70 @@ Wer keine virtuelle Umgebung nutzen möchte, kann die beiden Pakete über den Pa
 
 ---
 
-## Verwendung
+## Usage
 
-### 1. Interaktiver Menü-Modus
+### 1. Interactive Menu Mode
 
-Start ohne zusätzliche Argumente:
+Run without arguments:
 
 ```bash
 python3 proton_scanner.py
 ```
 
-Das Menü führt durch folgende Optionen:
-1. **Server analysieren:** Auswahl des Server-Typs (WireGuard, OpenVPN, Secure Core, Manuell), Länderauswahl, Bereichsgröße, Filter auf IPv6-Nodes und Ping-Messung.
-2. **Node-Finder (Reverse-Suche):** Ermittelt, welcher ProtonVPN-Node zu einer bestimmten IP-Adresse gehört.
-3. **DNS-Resolver:** Wählbar zwischen System-Standard, Cloudflare, Google oder Quad9.
+The menu guides you through:
+1. **Server analysis:** Select server type (WireGuard, OpenVPN, Secure Core, Custom), country code, range, IPv6 filter, and latency ping.
+2. **Node Finder (reverse search):** Identify which ProtonVPN node corresponds to a specific IP address or hostname.
+3. **DNS resolver:** Choose between System Default, Cloudflare, Google, or Quad9.
 
 ---
 
-### 2. CLI-Modus (Scripting & Automation)
+### 2. CLI Mode (Scripting & Automation)
 
-Proton-Scanner kann direkt über Parameter in Shell-Skripten, Cronjobs oder Monitoring-Pipelines verwendet werden:
+Proton-Scanner can be executed directly with command-line arguments:
 
-#### A. Server-Bereich scannen
+#### A. Scanning Server Ranges
 
 ```bash
-# Nur IPv6-fähige WireGuard-Nodes für Deutschland suchen, sortiert nach schnellster Latenz:
+# Search for IPv6-capable WireGuard nodes in Germany, sorted by lowest latency:
 python3 proton_scanner.py scan --mode 2 --cc de --count 50 --ipv6-only --sort-latency
 
-# WireGuard-Nodes für die Niederlande scannen (1-50):
+# Scan WireGuard nodes in the Netherlands (1-50):
 python3 proton_scanner.py scan --mode 2 --cc nl --count 50
 
-# OpenVPN-Server für die Schweiz als JSON ausgeben (ohne Ping, sauber pipebar):
+# Output OpenVPN nodes in Switzerland as clean JSON (no ping):
 python3 proton_scanner.py scan --mode 1 --cc ch --count 20 --no-ping --json | jq .
 
-# Mit spezifischem DNS-Resolver und angepasster Parallelität:
+# Use custom DNS resolvers with adjusted concurrency:
 python3 proton_scanner.py scan --mode 2 --cc nl --count 100 --dns 1.1.1.1 --concurrency 80
 ```
 
-#### B. Node-Finder (Reverse-Suche)
+#### B. Node Finder (Reverse Lookup)
 
 ```bash
-# Node zu einer Ziel-IP ermitteln:
+# Find which node belongs to a given IP:
 python3 proton_scanner.py reverse --target 62.112.9.164 --countries nl de ch --count 50
 
-# Strukturierte Ausgabe als JSON:
+# Output result as JSON:
 python3 proton_scanner.py reverse --target 62.112.9.164 --json
 ```
 
 ---
 
-## Tests & Qualitätssicherung
+## Testing & Quality Assurance
 
-Das Projekt wird mit `pytest` und `ruff` validiert:
+Validated using `pytest` and `ruff`:
 
 ```bash
-# Tests ausführen
+# Run test suite
 pytest
 
-# Code-Qualität und Linting prüfen
+# Check code quality and formatting
 ruff check .
 ```
 
 ---
 
-## Historie & Lizenz
+## History & License
 
-* **Historie:** Das Projekt entstand ursprünglich als Sammlung einfacher Bash-Skripte und wurde schrittweise auf Python und `asyncio` umgestellt. Die früheren Versionen sind zur Dokumentation im Verzeichnis [`legacy/bash/`](legacy/bash/) archiviert.
-* **Lizenz:** Dieses Projekt steht unter der **[MIT-Lizenz](LICENSE)**.
+* **History:** Originally started as a set of pragmatic Bash scripts and incrementally evolved into an asynchronous Python application. Historical scripts are preserved in the [`legacy/bash/`](legacy/bash/) directory.
+* **License:** Released under the **[MIT License](LICENSE)**.
