@@ -1,62 +1,115 @@
-# 🛡️ Proton-Scanner: Ein KI-unterstütztes Analyse-Werkzeug
+# 🛡️ Proton-Scanner (v20)
 
-Ein schnelles, modernes und interaktives Kommandozeilen-Werkzeug zur Analyse von ProtonVPN-Servern, geschrieben in Python mit `asyncio`.
+Ein schnelles, modernes und asynchrones Analyse- und Diagnose-Werkzeug für **ProtonVPN-Server**, geschrieben in Python 3.10+ mit `asyncio`, `dnspython`, `icmplib` und `rich`.
 
-Dieses Projekt wurde maßgeblich mit Unterstützung der **KI Gemini von Google** entwickelt und ist ein Beispiel für eine interaktive Zusammenarbeit zwischen Mensch und KI.
+Das Tool bietet sowohl ein komfortables, interaktives Terminal-Menü als auch vollwertige CLI-Befehle (inkl. JSON-Export) für Scripting und Automatisierung.
 
-## 🤖 Über das Projekt: Eine Mensch-KI-Kollaboration
+---
 
-Dieses Werkzeug begann als einfaches Bash-Skript. In einer fortlaufenden Konversation mit Gemini wurde es schrittweise zu dieser performanten Python-Anwendung ausgebaut. Jeder Entwicklungsschritt – von der ersten Code-Zeile über die Umstellung auf Python, die Implementierung von asynchronen Abfragen bis hin zur automatischen Abhängigkeitsprüfung – entstand in diesem Dialog.
+## ✨ Features & Neuerungen (v20)
 
-Der Hinweis auf die Beteiligung der KI dient der Transparenz und soll zeigen, wie Mensch-Maschine-Kollaboration heute aussehen kann.
+* **Kontrollierte Parallelität (`asyncio.Semaphore`):** Schnelle Abfragen hunderter Server ohne DNS-Überlastung oder Timeouts.
+* **Vollständig asynchroner Node-Finder:** Parallele Reverse-Suche nach Ziel-IPs über Länder und Servernummern hinweg in Sekunden.
+* **Native IP-Erkennung:** Strikte Validierung von IPv4 und IPv6 über Pythons Standardbibliothek `ipaddress`.
+* **Flexibler DNS-Resolver:** Nutzt standardmäßig den System-DNS und erlaubt die optionale Wahl schneller Resolver (Cloudflare `1.1.1.1`, Google `8.8.8.8`, Quad9 `9.9.9.9` oder eigene Resolver via CLI).
+* **Detaillierte Fehlerstatistik:** Saubere Differenzierung von aktiven Servern, `NXDOMAIN`, fehlenden Records (`NoAnswer`), Timeouts und Fehlern.
+* **Robuste Latenzmessung:** Asynchroner Ping mit automatischem Fallback auf das System-Ping-Binary bei restriktiven Socket-Rechten.
+* **Dualer Betriebsmodus:** Interaktives Menü oder automatisierbare CLI-Flags (`scan`, `reverse`, `--json`).
+* **CI/CD & Tests:** 100 % getestete Kernfunktionen mit `pytest`, Linting via `ruff` und GitHub Actions CI.
+* **Saubere Sprachstatistik:** Historische Bash-Skripte sind unter `legacy/bash/` archiviert und via `.gitattributes` markiert, sodass das Repository auf GitHub sauber als Python-Projekt geführt wird.
 
-## ✨ Merkmale
+---
 
-* **Extrem Schnell:** Nutzt asynchrone Abfragen (`asyncio`), um hunderte von Servern in Sekunden statt Minuten zu prüfen.
-* **Interaktives Menü:** Eine benutzerfreundliche Oberfläche zur Auswahl verschiedener Analyse-Modi.
-* **Umfassende Server-Analyse:**
-    * Findet IPv4- und IPv6-Adressen.
-    * Ermittelt Latenzzeiten durch einen asynchronen Ping-Test.
-    * Sucht den Reverse-DNS-Hostnamen für jede IP.
-* **Node-Finder (Reverse-Suche):** Findet heraus, welcher ProtonVPN-Node zu einer bestimmten IP-Adresse oder einem technischen Hostnamen gehört.
-* **Spezifische Suchmodi:** Enthält vordefinierte Suchen für klassische, moderne und Secure-Core-Server.
-* **Automatische Abhängigkeitsprüfung:** Überprüft beim Start, ob alle nötigen Python-Pakete installiert sind, und bietet eine automatische Installation an.
+## ⚙️ Voraussetzungen & Installation
 
-## ⚙️ Installation
+Benötigt **Python 3.10+**.
 
-Das Skript benötigt **Python 3.7+**.
+### 1. Repository klonen
 
-1.  **Klone das Repository:**
-    ```sh
-    git clone https://github.com/pschmidt3200/proton-vpn-scanner.git
-    cd proton-vpn-scanner
-    ```
+```bash
+git clone https://github.com/pschmidt3200/proton-vpn-scanner.git
+cd proton-vpn-scanner
+```
 
-2.  **Abhängigkeiten installieren:**
-    Das Skript bietet beim ersten Start eine automatische Installation der Abhängigkeiten an. Alternativ kannst du sie manuell oder in einer virtuellen Umgebung installieren:
-    ```sh
-    # Optional, aber empfohlen: Virtuelle Umgebung erstellen
-    python -m venv .venv
-    source .venv/bin/activate
+### 2. Virtuelle Umgebung & Abhängigkeiten
 
-    # Pakete installieren
-    pip install rich dnspython icmplib
-    ```
+```bash
+# Virtuelle Umgebung erstellen und aktivieren
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Abhängigkeiten via pyproject.toml installieren
+pip install .
+
+# Für Entwickler (inkl. pytest & ruff):
+pip install .[dev]
+```
+
+Alternativ prüft das Skript beim Direktstart `python3 proton_scanner.py` fehlende Abhängigkeiten und bietet passende Paketmanager-Befehle (Debian/Ubuntu, Arch, Fedora, Gentoo) unter Berücksichtigung von **PEP 668** an.
+
+---
 
 ## 🚀 Verwendung
 
-Führe das Skript einfach mit Python aus:
+### 1. Interaktiver Menü-Modus
 
-```sh
-python proton_scanner.py
+Starte das Skript ohne Argumente:
+
+```bash
+python3 proton_scanner.py
 ```
 
-Du wirst von einem interaktiven Menü begrüßt, das dich durch die verfügbaren Optionen führt:
+Das Menü führt durch alle Optionen:
+1. **Server analysieren:** Auswahl des Server-Typs (WireGuard, OpenVPN, Secure Core, Manuell), Länderauswahl, Bereichsgröße und Ping-Test.
+2. **Node-Finder (Reverse-Suche):** Ermittelt in Sekundenschnelle, welcher ProtonVPN-Node zu einer bestimmten IP-Adresse gehört.
+3. **DNS-Resolver:** Wählbar zwischen System-Standard, Cloudflare, Google oder Quad9.
 
-1.  **Server analysieren:** Finde IPs, Latenzen und mehr für eine Reihe von ProtonVPN-Servern.
-2.  **Node-Finder (Reverse-Suche):** Gib eine IP oder einen Hostnamen ein, um den zugehörigen ProtonVPN-Node zu finden.
-3.  **Beenden:** Schließt das Programm.
+---
 
-## Lizenz
+### 2. CLI-Modus (Scripting & Automation)
 
-Dieses Projekt steht unter der **MIT-Lizenz**. Die Lizenzdetails findest du in der `LICENSE`-Datei.
+Proton-Scanner kann direkt über Parameter in Shell-Skripten, Cronjobs oder Monitoring-Pipelines verwendet werden:
+
+#### A. Server-Bereich scannen
+
+```bash
+# Moderne WireGuard-Nodes für Deutschland scannen (1-50):
+python3 proton_scanner.py scan --mode 2 --cc de --count 50
+
+# Klassische OpenVPN-Server für die Schweiz als JSON ausgeben (ohne Ping):
+python3 proton_scanner.py scan --mode 1 --cc ch --count 20 --no-ping --json
+
+# Mit spezifischem DNS-Resolver und angepasster Parallelität:
+python3 proton_scanner.py scan --mode 2 --cc nl --count 100 --dns 1.1.1.1 --concurrency 80
+```
+
+#### B. Node-Finder (Reverse-Suche)
+
+```bash
+# Herausfinden, zu welchem Node eine IP gehört:
+python3 proton_scanner.py reverse --target 62.112.9.164 --countries nl de ch --count 50
+
+# Maschinenlesbare Ausgabe als JSON:
+python3 proton_scanner.py reverse --target 62.112.9.164 --json
+```
+
+---
+
+## 🧪 Tests & Qualitätssicherung
+
+Das Projekt wird mit `pytest` und `ruff` validiert:
+
+```bash
+# Tests ausführen
+pytest
+
+# Code-Qualität und Linting prüfen
+ruff check .
+```
+
+---
+
+## 📜 Historie & Lizenz
+
+* **Historie:** Das Projekt begann als Sammlung pragmatischer Bash-Skripte und entwickelte sich schrittweise zu einer performanten Python-Lösung. Die früheren Skripte sind zur Dokumentation im Ordner [`legacy/bash/`](legacy/bash/) archiviert.
+* **Lizenz:** Dieses Projekt steht unter der **[MIT-Lizenz](LICENSE)**.

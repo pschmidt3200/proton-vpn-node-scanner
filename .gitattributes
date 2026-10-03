@@ -1,0 +1,2 @@
+# Treat historical bash scripts as vendored to keep repository language statistics focused on Python
+legacy/** linguist-vendored
