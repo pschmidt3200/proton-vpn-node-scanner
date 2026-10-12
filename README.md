@@ -1,4 +1,4 @@
-# Proton-Scanner (v20)
+# Proton VPN Node Scanner (v20)
 
 **English** | [Deutsch](README.de.md)
 
@@ -87,7 +87,7 @@ The menu guides you through:
 
 ### 2. CLI Mode (Scripting & Automation)
 
-Proton-Scanner can be executed directly with command-line arguments:
+Proton VPN Node Scanner can be executed directly with command-line arguments:
 
 #### A. Scanning Server Ranges
 

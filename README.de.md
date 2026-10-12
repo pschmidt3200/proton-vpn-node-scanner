@@ -1,4 +1,4 @@
-# Proton-Scanner (v20)
+# Proton VPN Node Scanner (v20)
 
 [English](README.md) | **Deutsch**
 
@@ -87,7 +87,7 @@ Das Menü führt durch folgende Optionen:
 
 ### 2. CLI-Modus (Scripting & Automation)
 
-Proton-Scanner kann direkt über Parameter in Shell-Skripten, Cronjobs oder Monitoring-Pipelines verwendet werden:
+Proton VPN Node Scanner kann direkt über Parameter in Shell-Skripten, Cronjobs oder Monitoring-Pipelines verwendet werden:
 
 #### A. Server-Bereich scannen
 

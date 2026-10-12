@@ -1,5 +1,5 @@
 """
-Tests für Proton-Scanner (v20)
+Tests für Proton VPN Node Scanner (v20)
 """
 
 import asyncio

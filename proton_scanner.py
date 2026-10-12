@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Proton-Scanner (v20)
+Proton VPN Node Scanner (v20)
 Asynchrones Analyse- und Diagnose-Werkzeug für ProtonVPN-Server.
 Unterstützt interaktive Terminal-Bedienung sowie Kommandozeilen-Parameter.
 """
@@ -91,7 +91,7 @@ def check_and_install_dependencies() -> bool:
         return True
 
     print("--- Abhängigkeitsprüfung ---")
-    print("Die folgenden Basis-Pakete fehlen für Proton-Scanner:")
+    print("Die folgenden Basis-Pakete fehlen für Proton VPN Node Scanner:")
     for pkg in missing:
         print(f"  - {pkg}")
 
@@ -668,7 +668,7 @@ async def interactive_main():
     """Startet das interaktive Rich-Hauptmenü."""
     console.print(
         Panel.fit(
-            "[bold blue]Proton-Scanner v20[/bold blue]\n"
+            "[bold blue]Proton VPN Node Scanner v20[/bold blue]\n"
             "Asynchrones Analyse-Werkzeug mit kontrollierter Parallelität & nativer IP-Validierung",
             border_style="blue",
         )
@@ -718,7 +718,7 @@ async def interactive_main():
 
 def parse_cli_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Proton-Scanner: Asynchrone Analyse von ProtonVPN-Servern",
+        description="Proton VPN Node Scanner: Asynchrone Analyse von ProtonVPN-Servern",
     )
     subparsers = parser.add_subparsers(dest="command", help="Verfügbare Befehle")
 

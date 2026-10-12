@@ -39,6 +39,7 @@ dev = [
 ]
 
 [project.scripts]
+proton-vpn-node-scanner = "proton_scanner:main"
 proton-scanner = "proton_scanner:main"
 
 [tool.pytest.ini_options]
